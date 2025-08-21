@@ -75,7 +75,7 @@ func (t *QDeveloperTool) Execute(ctx context.Context, logger *logrus.Logger, cac
 	logger.Info("Executing Q Developer tool")
 
 	// Get timeout from environment or use default
-	timeout := t.getTimeout()
+	timeout := t.GetTimeout()
 
 	// Validate required prompt parameter
 	prompt, ok := args["prompt"].(string)
@@ -176,8 +176,8 @@ func (t *QDeveloperTool) runQDeveloper(ctx context.Context, logger *logrus.Logge
 	return output, nil
 }
 
-// getTimeout returns the configured timeout or default
-func (t *QDeveloperTool) getTimeout() int {
+// GetTimeout returns the configured timeout or default
+func (t *QDeveloperTool) GetTimeout() int {
 	if timeoutStr := os.Getenv(AgentTimeoutEnvVar); timeoutStr != "" {
 		if timeout, err := strconv.Atoi(timeoutStr); err == nil && timeout > 0 {
 			return timeout
