@@ -248,5 +248,106 @@ func TestQDeveloperTool_Constants(t *testing.T) {
 	testutils.AssertEqual(t, 180, qdeveloperagent.DefaultTimeout)
 }
 
-// Note: No Execute() tests - these would be slow as they execute real CLI.
-// Integration tests can be added separately if needed for CI with proper CLI setup.
+// Fast error handling tests that don't execute CLI
+
+func TestQDeveloperTool_Execute_ToolDisabled(t *testing.T) {
+	// Save original environment variable
+	originalValue := os.Getenv("ENABLE_ADDITIONAL_TOOLS")
+	defer func() {
+		if originalValue == "" {
+			_ = os.Unsetenv("ENABLE_ADDITIONAL_TOOLS")
+		} else {
+			_ = os.Setenv("ENABLE_ADDITIONAL_TOOLS", originalValue)
+		}
+	}()
+
+	// Ensure tool is disabled
+	_ = os.Unsetenv("ENABLE_ADDITIONAL_TOOLS")
+
+	tool := &qdeveloperagent.QDeveloperTool{}
+	logger := testutils.CreateTestLogger()
+	cache := testutils.CreateTestCache()
+	ctx := testutils.CreateTestContext()
+
+	args := map[string]any{
+		"prompt": "test prompt",
+	}
+
+	result, err := tool.Execute(ctx, logger, cache, args)
+
+	testutils.AssertError(t, err)
+	testutils.AssertErrorContains(t, err, "Q Developer agent tool is not enabled")
+	testutils.AssertErrorContains(t, err, "ENABLE_ADDITIONAL_TOOLS")
+	testutils.AssertErrorContains(t, err, "q-developer-agent")
+	if result != nil {
+		t.Error("Expected nil result when tool is disabled")
+	}
+}
+
+func TestQDeveloperTool_Execute_ValidationErrors(t *testing.T) {
+	// Save original environment variable
+	originalValue := os.Getenv("ENABLE_ADDITIONAL_TOOLS")
+	defer func() {
+		if originalValue == "" {
+			_ = os.Unsetenv("ENABLE_ADDITIONAL_TOOLS")
+		} else {
+			_ = os.Setenv("ENABLE_ADDITIONAL_TOOLS", originalValue)
+		}
+	}()
+
+	// Enable the tool to bypass enablement check
+	_ = os.Setenv("ENABLE_ADDITIONAL_TOOLS", "q-developer-agent")
+
+	tool := &qdeveloperagent.QDeveloperTool{}
+	logger := testutils.CreateTestLogger()
+	cache := testutils.CreateTestCache()
+	ctx := testutils.CreateTestContext()
+
+	tests := []struct {
+		name        string
+		args        map[string]any
+		expectedErr string
+	}{
+		{
+			name:        "missing prompt parameter",
+			args:        map[string]any{},
+			expectedErr: "prompt is a required parameter",
+		},
+		{
+			name: "empty prompt parameter",
+			args: map[string]any{
+				"prompt": "",
+			},
+			expectedErr: "prompt is a required parameter and cannot be empty",
+		},
+		{
+			name: "whitespace-only prompt parameter",
+			args: map[string]any{
+				"prompt": "   \t\n  ",
+			},
+			expectedErr: "prompt is a required parameter and cannot be empty",
+		},
+		{
+			name: "non-string prompt parameter",
+			args: map[string]any{
+				"prompt": 123,
+			},
+			expectedErr: "prompt is a required parameter",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := tool.Execute(ctx, logger, cache, tt.args)
+
+			testutils.AssertError(t, err)
+			testutils.AssertErrorContains(t, err, tt.expectedErr)
+			if result != nil {
+				t.Errorf("Expected nil result for validation error, got: %v", result)
+			}
+		})
+	}
+}
+
+// Note: Tests that would execute actual CLI are excluded to keep tests fast.
+// Tool enablement is tested separately in tests/unit/enablement_test.go

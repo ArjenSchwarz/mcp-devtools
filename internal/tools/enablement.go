@@ -14,6 +14,7 @@ import (
 // Supported tool names:
 // - claude-agent
 // - gemini-agent
+// - q-developer-agent
 // - filesystem
 // - vulnerability_scan
 // - sbom
