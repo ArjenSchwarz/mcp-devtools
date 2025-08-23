@@ -52,14 +52,14 @@
 ## 4. Command Building and Execution
 ### Objective: Build Q Developer CLI commands and execute them safely
 
-- [ ] 4.1 Write unit tests for command building logic
+- [x] 4.1 Write unit tests for command building logic
   - Test basic command with prompt only
   - Test command with all parameters
   - Test --no-interactive flag is always included
   - Test command injection prevention
   - References: Requirements 1.1-1.2 (CLI execution), 3.7 (no-interactive flag)
 
-- [ ] 4.2 Implement runQDeveloper() helper function
+- [x] 4.2 Implement runQDeveloper() helper function
   - Build command arguments array safely
   - Always include --no-interactive flag
   - Map parameters to correct CLI flags

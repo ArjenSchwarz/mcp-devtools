@@ -35,6 +35,7 @@ import (
 	_ "github.com/sammcj/mcp-devtools/internal/tools/packagedocs"
 	_ "github.com/sammcj/mcp-devtools/internal/tools/packageversions/unified"
 	_ "github.com/sammcj/mcp-devtools/internal/tools/pdf"
+	_ "github.com/sammcj/mcp-devtools/internal/tools/qdeveloperagent"
 	_ "github.com/sammcj/mcp-devtools/internal/tools/sbom"
 	_ "github.com/sammcj/mcp-devtools/internal/tools/securityoverride"
 	_ "github.com/sammcj/mcp-devtools/internal/tools/shadcnui"
