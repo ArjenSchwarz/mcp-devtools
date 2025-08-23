@@ -70,14 +70,14 @@
 ## 5. Response Processing and Size Management
 ### Objective: Process Q Developer output with size limits and truncation
 
-- [ ] 5.1 Create unit tests for response processing
+- [x] 5.1 Create unit tests for response processing
   - Test response within size limits
   - Test truncation at line boundaries
   - Test truncation message formatting
   - Test edge cases (empty response, single line)
   - References: Requirements 5.1-5.3 (response management)
 
-- [ ] 5.2 Implement ApplyResponseSizeLimit() function
+- [x] 5.2 Implement ApplyResponseSizeLimit() function
   - Check response size against configured limit
   - Find appropriate truncation point at line boundary
   - Append truncation message with size information

@@ -198,6 +198,11 @@ func (t *QDeveloperTool) GetMaxResponseSize() int {
 
 // ApplyResponseSizeLimit truncates the response if it exceeds the configured size limit
 func (t *QDeveloperTool) ApplyResponseSizeLimit(output string, logger *logrus.Logger) string {
+	// Handle empty output
+	if output == "" {
+		return ""
+	}
+
 	maxSize := t.GetMaxResponseSize()
 
 	// Check if output exceeds limit
@@ -205,19 +210,41 @@ func (t *QDeveloperTool) ApplyResponseSizeLimit(output string, logger *logrus.Lo
 		return output
 	}
 
-	// Truncate and add informative message
-	truncated := output[:maxSize]
+	// Find a good truncation point - try to truncate at a line boundary
+	truncateAt := maxSize
 
-	// Try to truncate at a natural boundary (line break) within the last 100 characters
-	if lastNewline := strings.LastIndex(truncated[maxSize-100:], "\n"); lastNewline != -1 {
-		truncated = truncated[:maxSize-100+lastNewline]
+	// Look for line break within last 100 characters of the limit
+	searchStart := max(maxSize-100, 0)
+
+	// Find the last newline in the search window
+	searchWindow := output[searchStart:maxSize]
+	if lastNewline := strings.LastIndexAny(searchWindow, "\n\r"); lastNewline != -1 {
+		truncateAt = searchStart + lastNewline
+	} else if maxSize < len(output) {
+		// If no newline found and we need to truncate, just use the maxSize
+		truncateAt = maxSize
 	}
 
-	sizeInMB := float64(maxSize) / (1024 * 1024)
-	message := fmt.Sprintf("\n\n[RESPONSE TRUNCATED: Output exceeded %.1fMB limit. Original size: %.1fMB. Use AGENT_MAX_RESPONSE_SIZE environment variable to adjust limit.]",
-		sizeInMB, float64(len(output))/(1024*1024))
+	truncated := output[:truncateAt]
+	originalSize := len(output)
+	truncatedSize := len(truncated)
 
-	logger.Warnf("Q Developer agent response truncated from %d bytes to %d bytes due to size limit", len(output), len(truncated))
+	// Format the size for display
+	var limitDisplay string
+
+	if maxSize >= 1024*1024 {
+		limitDisplay = fmt.Sprintf("%.1fMB", float64(maxSize)/(1024*1024))
+	} else if maxSize >= 1024 {
+		limitDisplay = fmt.Sprintf("%.1fKB", float64(maxSize)/1024)
+	} else {
+		limitDisplay = fmt.Sprintf("%dB", maxSize)
+	}
+
+	// Build truncation message matching test expectations
+	message := fmt.Sprintf("\n\n[RESPONSE TRUNCATED: Output exceeded %s limit. Original: %d, Truncated: %d]",
+		limitDisplay, originalSize, truncatedSize)
+
+	logger.Warnf("Q Developer agent response truncated from %d bytes to %d bytes due to size limit", originalSize, truncatedSize)
 
 	return truncated + message
 }

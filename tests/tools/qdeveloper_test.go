@@ -1,6 +1,7 @@
 package tools_test
 
 import (
+	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -857,4 +858,359 @@ func TestQDeveloperTool_CommandBuilding_CommandInjectionPrevention(t *testing.T)
 	}
 
 	// The fact that we get proper execution instead of shell errors proves injection prevention works
+}
+
+// Task 5.1: Unit tests for response processing
+
+func TestQDeveloperTool_ResponseProcessing_WithinSizeLimit(t *testing.T) {
+	// Test response that is within the size limit
+	tool := &qdeveloperagent.QDeveloperTool{}
+	logger := testutils.CreateTestLogger()
+
+	// Small response that should not be truncated
+	input := "This is a normal response from Q Developer.\nLine 2 of the response.\nLine 3 of the response."
+	result := tool.ApplyResponseSizeLimit(input, logger)
+
+	// Should return the input unchanged
+	testutils.AssertEqual(t, input, result)
+}
+
+func TestQDeveloperTool_ResponseProcessing_ExceedsSizeLimit(t *testing.T) {
+	// Save original environment variable
+	originalValue := os.Getenv("AGENT_MAX_RESPONSE_SIZE")
+	defer func() {
+		if originalValue == "" {
+			_ = os.Unsetenv("AGENT_MAX_RESPONSE_SIZE")
+		} else {
+			_ = os.Setenv("AGENT_MAX_RESPONSE_SIZE", originalValue)
+		}
+	}()
+
+	// Set a small limit for testing (1KB)
+	_ = os.Setenv("AGENT_MAX_RESPONSE_SIZE", "1024")
+
+	tool := &qdeveloperagent.QDeveloperTool{}
+	logger := testutils.CreateTestLogger()
+
+	// Create a response larger than 1KB
+	lines := []string{}
+	for i := 0; i < 50; i++ {
+		lines = append(lines, fmt.Sprintf("Line %d: This is a longer line of output that helps us exceed the size limit", i))
+	}
+	input := strings.Join(lines, "\n")
+
+	result := tool.ApplyResponseSizeLimit(input, logger)
+
+	// Should be truncated
+	testutils.AssertTrue(t, len(result) < len(input))
+	// Should contain truncation message
+	testutils.AssertTrue(t, strings.Contains(result, "[RESPONSE TRUNCATED"))
+	testutils.AssertTrue(t, strings.Contains(result, "exceeded 1.0KB limit"))
+	// Should include both original and truncated sizes
+	testutils.AssertTrue(t, strings.Contains(result, "Original:"))
+	testutils.AssertTrue(t, strings.Contains(result, "Truncated:"))
+}
+
+func TestQDeveloperTool_ResponseProcessing_TruncationAtLineBoundary(t *testing.T) {
+	// Test that truncation happens at line boundaries, not mid-line
+	// Save original environment variable
+	originalValue := os.Getenv("AGENT_MAX_RESPONSE_SIZE")
+	defer func() {
+		if originalValue == "" {
+			_ = os.Unsetenv("AGENT_MAX_RESPONSE_SIZE")
+		} else {
+			_ = os.Setenv("AGENT_MAX_RESPONSE_SIZE", originalValue)
+		}
+	}()
+
+	// Set a specific limit
+	_ = os.Setenv("AGENT_MAX_RESPONSE_SIZE", "200")
+
+	tool := &qdeveloperagent.QDeveloperTool{}
+	logger := testutils.CreateTestLogger()
+
+	// Create content with clear line boundaries
+	lines := []string{
+		"Line 1: Short line",
+		"Line 2: Another short line",
+		"Line 3: This is a much longer line that contains more content than the others",
+		"Line 4: Medium length line here",
+		"Line 5: Another medium length line",
+		"Line 6: Yet another line",
+		"Line 7: More content here",
+		"Line 8: Even more content",
+		"Line 9: Almost done",
+		"Line 10: Final line of content that should definitely exceed our limit",
+	}
+	input := strings.Join(lines, "\n")
+
+	result := tool.ApplyResponseSizeLimit(input, logger)
+
+	// Should be truncated
+	testutils.AssertTrue(t, len(result) < len(input))
+
+	// Find where the actual content ends (before truncation message)
+	truncationIndex := strings.Index(result, "\n\n[RESPONSE TRUNCATED")
+	testutils.AssertTrue(t, truncationIndex > 0)
+
+	// The truncated content should end at a newline
+	truncatedContent := result[:truncationIndex]
+	// Should contain complete lines only
+	truncatedLines := strings.Split(truncatedContent, "\n")
+	for i, line := range truncatedLines {
+		// Each line should be a complete line from the original
+		found := false
+		for _, originalLine := range lines {
+			if line == originalLine {
+				found = true
+				break
+			}
+		}
+		if !found && line != "" { // Allow empty lines
+			t.Errorf("Line %d in truncated output is not a complete line from original: %s", i, line)
+		}
+	}
+}
+
+func TestQDeveloperTool_ResponseProcessing_EmptyResponse(t *testing.T) {
+	// Test handling of empty response
+	tool := &qdeveloperagent.QDeveloperTool{}
+	logger := testutils.CreateTestLogger()
+
+	input := ""
+	result := tool.ApplyResponseSizeLimit(input, logger)
+
+	// Should return empty string without truncation message
+	testutils.AssertEqual(t, "", result)
+}
+
+func TestQDeveloperTool_ResponseProcessing_SingleLineResponse(t *testing.T) {
+	// Test handling of single line response
+	tool := &qdeveloperagent.QDeveloperTool{}
+	logger := testutils.CreateTestLogger()
+
+	input := "Single line response with no newlines"
+	result := tool.ApplyResponseSizeLimit(input, logger)
+
+	// Should return unchanged when within limit
+	testutils.AssertEqual(t, input, result)
+}
+
+func TestQDeveloperTool_ResponseProcessing_SingleLineTruncation(t *testing.T) {
+	// Test truncation of a single very long line
+	// Save original environment variable
+	originalValue := os.Getenv("AGENT_MAX_RESPONSE_SIZE")
+	defer func() {
+		if originalValue == "" {
+			_ = os.Unsetenv("AGENT_MAX_RESPONSE_SIZE")
+		} else {
+			_ = os.Setenv("AGENT_MAX_RESPONSE_SIZE", originalValue)
+		}
+	}()
+
+	// Set a small limit
+	_ = os.Setenv("AGENT_MAX_RESPONSE_SIZE", "100")
+
+	tool := &qdeveloperagent.QDeveloperTool{}
+	logger := testutils.CreateTestLogger()
+
+	// Create a single line longer than the limit
+	input := strings.Repeat("Q", 200)
+	result := tool.ApplyResponseSizeLimit(input, logger)
+
+	// Should be truncated
+	testutils.AssertTrue(t, len(result) < len(input))
+	testutils.AssertTrue(t, strings.Contains(result, "[RESPONSE TRUNCATED"))
+}
+
+func TestQDeveloperTool_ResponseProcessing_ResponseJustUnderLimit(t *testing.T) {
+	// Test response that is just under the size limit
+	// Save original environment variable
+	originalValue := os.Getenv("AGENT_MAX_RESPONSE_SIZE")
+	defer func() {
+		if originalValue == "" {
+			_ = os.Unsetenv("AGENT_MAX_RESPONSE_SIZE")
+		} else {
+			_ = os.Setenv("AGENT_MAX_RESPONSE_SIZE", originalValue)
+		}
+	}()
+
+	// Set a specific limit
+	_ = os.Setenv("AGENT_MAX_RESPONSE_SIZE", "1000")
+
+	tool := &qdeveloperagent.QDeveloperTool{}
+	logger := testutils.CreateTestLogger()
+
+	// Create content just under 1000 bytes
+	input := strings.Repeat("A", 999)
+	result := tool.ApplyResponseSizeLimit(input, logger)
+
+	// Should NOT be truncated
+	testutils.AssertEqual(t, input, result)
+}
+
+func TestQDeveloperTool_ResponseProcessing_ResponseExactlyAtLimit(t *testing.T) {
+	// Test response that is exactly at the size limit
+	// Save original environment variable
+	originalValue := os.Getenv("AGENT_MAX_RESPONSE_SIZE")
+	defer func() {
+		if originalValue == "" {
+			_ = os.Unsetenv("AGENT_MAX_RESPONSE_SIZE")
+		} else {
+			_ = os.Setenv("AGENT_MAX_RESPONSE_SIZE", originalValue)
+		}
+	}()
+
+	// Set a specific limit
+	_ = os.Setenv("AGENT_MAX_RESPONSE_SIZE", "1000")
+
+	tool := &qdeveloperagent.QDeveloperTool{}
+	logger := testutils.CreateTestLogger()
+
+	// Create content exactly 1000 bytes
+	input := strings.Repeat("B", 1000)
+	result := tool.ApplyResponseSizeLimit(input, logger)
+
+	// Should NOT be truncated
+	testutils.AssertEqual(t, input, result)
+}
+
+func TestQDeveloperTool_ResponseProcessing_MultilineWithSpecialCharacters(t *testing.T) {
+	// Test response with special characters and different line endings
+	tool := &qdeveloperagent.QDeveloperTool{}
+	logger := testutils.CreateTestLogger()
+
+	// Response with various special characters
+	input := "Line 1: Normal text\n" +
+		"Line 2: Text with 特殊字符\n" +
+		"Line 3: Text with emojis 😀 🚀\n" +
+		"Line 4: Text with tabs\t\there\n" +
+		"Line 5: Text with quotes \"hello\" 'world'\n"
+
+	result := tool.ApplyResponseSizeLimit(input, logger)
+
+	// Should return unchanged when within limit
+	testutils.AssertEqual(t, input, result)
+}
+
+func TestQDeveloperTool_ResponseProcessing_TruncationMessageFormat(t *testing.T) {
+	// Test the format of the truncation message
+	// Save original environment variable
+	originalValue := os.Getenv("AGENT_MAX_RESPONSE_SIZE")
+	defer func() {
+		if originalValue == "" {
+			_ = os.Unsetenv("AGENT_MAX_RESPONSE_SIZE")
+		} else {
+			_ = os.Setenv("AGENT_MAX_RESPONSE_SIZE", originalValue)
+		}
+	}()
+
+	// Set a small limit
+	_ = os.Setenv("AGENT_MAX_RESPONSE_SIZE", "256")
+
+	tool := &qdeveloperagent.QDeveloperTool{}
+	logger := testutils.CreateTestLogger()
+
+	// Create content that exceeds the limit
+	input := strings.Repeat("Test line content\n", 50)
+	originalSize := len(input)
+
+	result := tool.ApplyResponseSizeLimit(input, logger)
+
+	// Check truncation message format
+	testutils.AssertTrue(t, strings.Contains(result, "[RESPONSE TRUNCATED"))
+	testutils.AssertTrue(t, strings.Contains(result, "exceeded 256B limit"))
+	testutils.AssertTrue(t, strings.Contains(result, fmt.Sprintf("Original: %d", originalSize)))
+
+	// The truncated size should be mentioned
+	truncatedSize := len(result)
+	// Note: The actual truncated size includes the truncation message itself
+	testutils.AssertTrue(t, truncatedSize < originalSize)
+}
+
+func TestQDeveloperTool_ResponseProcessing_WindowsLineEndings(t *testing.T) {
+	// Test handling of Windows-style line endings (CRLF)
+	tool := &qdeveloperagent.QDeveloperTool{}
+	logger := testutils.CreateTestLogger()
+
+	// Response with Windows line endings
+	input := "Line 1: Windows style\r\n" +
+		"Line 2: More Windows\r\n" +
+		"Line 3: Final Windows line\r\n"
+
+	result := tool.ApplyResponseSizeLimit(input, logger)
+
+	// Should handle CRLF properly
+	testutils.AssertEqual(t, input, result)
+}
+
+func TestQDeveloperTool_ResponseProcessing_MixedLineEndings(t *testing.T) {
+	// Test handling of mixed line endings
+	tool := &qdeveloperagent.QDeveloperTool{}
+	logger := testutils.CreateTestLogger()
+
+	// Response with mixed line endings
+	input := "Line 1: Unix style\n" +
+		"Line 2: Windows style\r\n" +
+		"Line 3: Old Mac style\r" +
+		"Line 4: Unix again\n"
+
+	result := tool.ApplyResponseSizeLimit(input, logger)
+
+	// Should handle mixed line endings
+	testutils.AssertEqual(t, input, result)
+}
+
+func TestQDeveloperTool_ResponseProcessing_VeryLongSingleLine(t *testing.T) {
+	// Test truncation behavior with a very long single line
+	// Save original environment variable
+	originalValue := os.Getenv("AGENT_MAX_RESPONSE_SIZE")
+	defer func() {
+		if originalValue == "" {
+			_ = os.Unsetenv("AGENT_MAX_RESPONSE_SIZE")
+		} else {
+			_ = os.Setenv("AGENT_MAX_RESPONSE_SIZE", originalValue)
+		}
+	}()
+
+	// Set a limit
+	_ = os.Setenv("AGENT_MAX_RESPONSE_SIZE", "500")
+
+	tool := &qdeveloperagent.QDeveloperTool{}
+	logger := testutils.CreateTestLogger()
+
+	// Create a single very long line
+	input := "START-" + strings.Repeat("verylongword", 100) + "-END"
+	result := tool.ApplyResponseSizeLimit(input, logger)
+
+	// Should be truncated
+	testutils.AssertTrue(t, len(result) < len(input))
+	testutils.AssertTrue(t, strings.Contains(result, "[RESPONSE TRUNCATED"))
+
+	// The truncated content should start with "START-"
+	testutils.AssertTrue(t, strings.HasPrefix(result, "START-"))
+}
+
+func TestQDeveloperTool_ResponseProcessing_OnlyNewlines(t *testing.T) {
+	// Test response that consists only of newlines
+	tool := &qdeveloperagent.QDeveloperTool{}
+	logger := testutils.CreateTestLogger()
+
+	input := "\n\n\n\n\n"
+	result := tool.ApplyResponseSizeLimit(input, logger)
+
+	// Should return unchanged
+	testutils.AssertEqual(t, input, result)
+}
+
+func TestQDeveloperTool_ResponseProcessing_TrailingNewlines(t *testing.T) {
+	// Test that trailing newlines are preserved
+	tool := &qdeveloperagent.QDeveloperTool{}
+	logger := testutils.CreateTestLogger()
+
+	input := "Line 1\nLine 2\nLine 3\n\n\n"
+	result := tool.ApplyResponseSizeLimit(input, logger)
+
+	// Should preserve trailing newlines
+	testutils.AssertEqual(t, input, result)
 }
