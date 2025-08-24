@@ -3,6 +3,7 @@ package tools_test
 import (
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 	"testing"
 
@@ -50,14 +51,7 @@ func TestQDeveloperTool_Definition_ParameterSchema(t *testing.T) {
 
 	// Verify prompt is in required array
 	testutils.AssertNotNil(t, schema.Required)
-	promptRequired := false
-	for _, required := range schema.Required {
-		if required == "prompt" {
-			promptRequired = true
-			break
-		}
-	}
-	testutils.AssertTrue(t, promptRequired)
+	testutils.AssertTrue(t, slices.Contains(schema.Required, "prompt"))
 }
 
 func TestQDeveloperTool_Definition_OptionalParameters(t *testing.T) {
@@ -278,7 +272,7 @@ func TestQDeveloperTool_Execute_ToolDisabled(t *testing.T) {
 	result, err := tool.Execute(ctx, logger, cache, args)
 
 	testutils.AssertError(t, err)
-	testutils.AssertErrorContains(t, err, "Q Developer agent tool is not enabled")
+	testutils.AssertErrorContains(t, err, "q Developer agent tool is not enabled")
 	testutils.AssertErrorContains(t, err, "ENABLE_ADDITIONAL_TOOLS")
 	testutils.AssertErrorContains(t, err, "q-developer-agent")
 	if result != nil {

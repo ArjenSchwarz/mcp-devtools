@@ -23,7 +23,7 @@ graph LR
 
     F --> F_Tools[🇬🇧 American→English<br>📁 Filesystem<br>📝 Changelog Generation]
 
-    G --> G_Tools[🤖 Claude Code<br>✨ Gemini CLI<br>Q Developer]
+    G --> G_Tools[🤖 Claude Code<br>✨ Gemini CLI<br>🅰️ Q Developer]
 
     classDef inputOutput fill:#FEE0D2,stroke:#E6550D,color:#E6550D
     classDef llm fill:#E5F5E0,stroke:#31A354,color:#31A354

@@ -66,10 +66,10 @@ func (t *QDeveloperTool) Definition() mcp.Tool {
 }
 
 // Execute executes the tool's logic by calling the Q Developer CLI
-func (t *QDeveloperTool) Execute(ctx context.Context, logger *logrus.Logger, cache *sync.Map, args map[string]interface{}) (*mcp.CallToolResult, error) {
+func (t *QDeveloperTool) Execute(ctx context.Context, logger *logrus.Logger, cache *sync.Map, args map[string]any) (*mcp.CallToolResult, error) {
 	// Check if q-developer-agent tool is enabled (disabled by default for security)
 	if !tools.IsToolEnabled("q-developer-agent") {
-		return nil, fmt.Errorf("Q Developer agent tool is not enabled. Set ENABLE_ADDITIONAL_TOOLS environment variable to include 'q-developer-agent'")
+		return nil, fmt.Errorf("q Developer agent tool is not enabled. Set ENABLE_ADDITIONAL_TOOLS environment variable to include 'q-developer-agent'")
 	}
 
 	logger.Info("Executing Q Developer tool")
@@ -98,7 +98,7 @@ func (t *QDeveloperTool) Execute(ctx context.Context, logger *logrus.Logger, cac
 			return mcp.NewToolResultText(output + timeoutMsg), nil
 		}
 		logger.WithError(err).Error("Q Developer tool execution failed")
-		return nil, fmt.Errorf("Q Developer command failed: %w", err)
+		return nil, fmt.Errorf("q Developer command failed: %w", err)
 	}
 
 	// Apply response size limits
@@ -158,19 +158,19 @@ func (t *QDeveloperTool) runQDeveloper(ctx context.Context, logger *logrus.Logge
 
 		// Enhanced error handling for common scenarios
 		if strings.Contains(errorOutput, "command not found") || strings.Contains(err.Error(), "executable file not found") {
-			return "", fmt.Errorf("Q Developer CLI not found. Please install Q Developer CLI and ensure it's available in your PATH")
+			return "", fmt.Errorf("q Developer CLI not found. Please install Q Developer CLI and ensure it's available in your PATH")
 		}
 
 		if strings.Contains(errorOutput, "not authenticated") || strings.Contains(errorOutput, "authentication") {
-			return "", fmt.Errorf("Q Developer authentication failed. Please ensure you are authenticated with AWS and Q Developer is configured properly. Error: %s", errorOutput)
+			return "", fmt.Errorf("q Developer authentication failed. Please ensure you are authenticated with AWS and Q Developer is configured properly. Error: %s", errorOutput)
 		}
 
 		// Include stderr in error for debugging
 		if errorOutput != "" {
-			return "", fmt.Errorf("Q Developer CLI error: %s. Stderr: %s", err.Error(), errorOutput)
+			return "", fmt.Errorf("q Developer CLI error: %s. Stderr: %s", err.Error(), errorOutput)
 		}
 
-		return "", fmt.Errorf("Q Developer CLI error: %w", err)
+		return "", fmt.Errorf("q Developer CLI error: %w", err)
 	}
 
 	return output, nil
@@ -255,14 +255,14 @@ func (t *QDeveloperTool) ProvideExtendedInfo() *tools.ExtendedHelp {
 		Examples: []tools.ToolExample{
 			{
 				Description: "Get Q Developer to analyze code for potential improvements",
-				Arguments: map[string]interface{}{
+				Arguments: map[string]any{
 					"prompt": "Please review this function for efficiency and suggest optimizations: [paste your code here]",
 				},
 				ExpectedResult: "Q Developer analyzes the code and provides specific suggestions for optimization and best practices",
 			},
 			{
 				Description: "Ask Q Developer to help debug an issue",
-				Arguments: map[string]interface{}{
+				Arguments: map[string]any{
 					"prompt":  "I'm getting a TypeError when calling this API. Can you help identify the issue?",
 					"verbose": true,
 				},
@@ -270,7 +270,7 @@ func (t *QDeveloperTool) ProvideExtendedInfo() *tools.ExtendedHelp {
 			},
 			{
 				Description: "Continue a previous conversation in the same directory",
-				Arguments: map[string]interface{}{
+				Arguments: map[string]any{
 					"prompt": "Thanks for the previous suggestions. Can you now help me implement the caching layer you mentioned?",
 					"resume": true,
 				},

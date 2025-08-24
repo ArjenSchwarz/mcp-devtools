@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Modernised Q Developer agent code to use `any` instead of `interface{}` type constraint
+- Improved Q Developer agent test code using `slices.Contains()` instead of manual loops
+- Standardised error message casing for q Developer references
+- Updated README.md with proper emoji for Q Developer agent (🅰️)
+
 ### Added
 - Q Developer Agent tool for AWS Q Developer CLI integration
 - Complete tool implementation with MCP protocol support
