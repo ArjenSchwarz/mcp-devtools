@@ -7,6 +7,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- Documentation for GitHub Copilot Agent Tool:
+  - Created [docs/tools/copilot-agent.md](docs/tools/copilot-agent.md) with usage examples, configuration details, and troubleshooting guide
+  - Added copilot-agent to README.md agents table with emoji icon and description
+  - Added copilot-agent to [docs/tools/overview.md](docs/tools/overview.md) with configuration examples
+  - Updated internal/tools/enablement.go comments to include copilot-agent in supported tools list
 - golangci-lint configuration file (.golangci.yml) with version 2 configuration and enabled linters
 
 ### Changed

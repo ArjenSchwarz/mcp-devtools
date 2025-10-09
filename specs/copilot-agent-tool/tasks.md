@@ -102,7 +102,7 @@ references:
 
 ## Documentation & Polish
 
-- [ ] 5. Implement extended help
+- [x] 5. Implement extended help
   - Implement ProvideExtendedInfo() method
   - Add 5+ realistic usage examples with arguments and expected results
   - Document common usage patterns
@@ -111,7 +111,7 @@ references:
   - Add WhenToUse and WhenNotToUse guidance
   - Requirements: [12.1](requirements.md#12.1), [12.2](requirements.md#12.2), [12.3](requirements.md#12.3), [12.4](requirements.md#12.4), [12.5](requirements.md#12.5), [12.6](requirements.md#12.6)
   - References: internal/tools/qdeveloperagent/qdeveloper.go, internal/tools/claudeagent/claude.go
-  - [ ] 5.1. Create user documentation
+  - [x] 5.1. Create user documentation
     - Create docs/tools/copilot-agent.md
     - Document tool purpose and capabilities
     - Document all parameters with descriptions and examples
@@ -122,13 +122,13 @@ references:
     - Add authentication setup instructions (gh auth login)
     - Requirements: [14.1](requirements.md#14.1), [14.2](requirements.md#14.2), [14.3](requirements.md#14.3), [14.4](requirements.md#14.4), [14.5](requirements.md#14.5)
     - References: docs/tools/q-developer-agent.md, docs/tools/claude-agent.md
-  - [ ] 5.2. Update README and overview documentation
+  - [x] 5.2. Update README and overview documentation
     - Add copilot-agent to Agents table in README.md (around line 141)
     - Add copilot-agent to docs/tools/overview.md agents section
     - Add copilot-agent to ENABLE_ADDITIONAL_TOOLS examples in overview.md
     - Requirements: [14.6](requirements.md#14.6), [14.7](requirements.md#14.7)
     - References: README.md, docs/tools/overview.md
-  - [ ] 5.3. Update tool enablement documentation
+  - [x] 5.3. Update tool enablement documentation
     - Add copilot-agent to supported tool names list in internal/tools/enablement.go comments
     - Requirements: [16.3](requirements.md#16.3)
     - References: internal/tools/enablement.go
