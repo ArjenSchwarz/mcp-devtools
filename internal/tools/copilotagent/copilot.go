@@ -104,7 +104,7 @@ func (t *CopilotTool) Execute(ctx context.Context, logger *logrus.Logger, cache 
 	}
 
 	// Filter output to remove Copilot-specific metadata
-	output = t.filterOutput(output)
+	output = t.FilterOutput(output)
 
 	// Apply response size limits
 	output = t.ApplyResponseSizeLimit(output, logger)
@@ -212,8 +212,8 @@ func (t *CopilotTool) runCopilot(ctx context.Context, logger *logrus.Logger, tim
 	return output, nil
 }
 
-// filterOutput removes Copilot-specific metadata from output
-func (t *CopilotTool) filterOutput(output string) string {
+// FilterOutput removes Copilot-specific metadata from output
+func (t *CopilotTool) FilterOutput(output string) string {
 	lines := strings.Split(output, "\n")
 	var filtered []string
 
@@ -226,12 +226,12 @@ func (t *CopilotTool) filterOutput(output string) string {
 		}
 
 		// Skip progress indicators and command traces
-		if len(trimmedLine) > 0 {
-			firstChar := rune(trimmedLine[0])
-			// Skip lines starting with: ● ✓ ✗ ↪
-			if firstChar == '●' || firstChar == '✓' || firstChar == '✗' || firstChar == '↪' {
-				continue
-			}
+		// Skip lines starting with: ● ✓ ✗ ↪
+		if strings.HasPrefix(trimmedLine, "●") ||
+			strings.HasPrefix(trimmedLine, "✓") ||
+			strings.HasPrefix(trimmedLine, "✗") ||
+			strings.HasPrefix(trimmedLine, "↪") {
+			continue
 		}
 
 		// Skip command execution lines ($ command)

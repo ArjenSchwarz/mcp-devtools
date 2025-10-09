@@ -155,7 +155,7 @@ func (t *CopilotTool) runCopilot(ctx context.Context, logger *logrus.Logger, tim
     defer cancel()
 
     // Build command arguments inline (matching Q Developer pattern)
-    cmdArgs := []string{"-p", prompt, "--no-color"}
+    cmdArgs := []string{"--prompt", prompt, "--no-color"}
 
     // Model selection
     if model, ok := args["override-model"].(string); ok && model != "" {

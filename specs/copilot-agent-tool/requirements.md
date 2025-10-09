@@ -17,7 +17,7 @@ The tool will follow the established patterns of existing agent tools while supp
 1. <a name="1.1"></a>The system SHALL implement a CopilotTool struct that conforms to the tools.Tool interface
 2. <a name="1.2"></a>The system SHALL register the tool with the name "copilot-agent" during package initialisation
 3. <a name="1.3"></a>The system SHALL require the tool to be explicitly enabled via ENABLE_ADDITIONAL_TOOLS environment variable
-4. <a name="1.4"></a>The system SHALL execute the copilot CLI command in non-interactive mode using the -p/--prompt flag
+4. <a name="1.4"></a>The system SHALL execute the copilot CLI command in non-interactive mode using the --prompt flag
 5. <a name="1.5"></a>The system SHALL capture and return both stdout and stderr output from the Copilot CLI
 6. <a name="1.6"></a>The system SHALL use the same variable naming conventions as existing agent tools (prompt, override-model, yolo-mode, etc.)
 7. <a name="1.7"></a>The system SHALL always pass the --no-color flag to Copilot to reduce output overhead
@@ -30,7 +30,7 @@ The tool will follow the established patterns of existing agent tools while supp
 
 1. <a name="2.1"></a>The system SHALL accept a required "prompt" parameter containing the instruction for Copilot
 2. <a name="2.2"></a>The system SHALL validate that the prompt parameter is not empty or whitespace-only
-3. <a name="2.3"></a>The system SHALL execute Copilot using the -p/--prompt flag for direct prompt execution
+3. <a name="2.3"></a>The system SHALL execute Copilot using the --prompt flag for direct prompt execution
 4. <a name="2.4"></a>The system SHALL return an error if the prompt parameter is missing or invalid
 
 ### 3. Model Selection
