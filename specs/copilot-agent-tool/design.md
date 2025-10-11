@@ -283,48 +283,78 @@ flowchart TD
 
 ### Filtering Strategy
 
-The tool filters output to remove:
-1. Progress indicators (lines starting with ● ✓ ✗ ↪)
-2. Command execution traces (lines containing $ commands)
-3. Usage statistics section (from "Total usage est" onwards)
-4. File/directory operation descriptions
-5. Other Copilot-specific metadata
+Based on actual Copilot CLI output analysis, the filtering strategy has been revised:
+
+**Observed Copilot Output Pattern:**
+```
+● Starting analysis
+✓ Read file.go
+$ command execution
+↪ 2 lines...
+
+● Actual answer content here
+More answer content
+
+Total usage est:       1 Premium request
+Total duration (API):  2.8s
+```
+
+**Key Discovery:** Copilot places the actual answer content after the last progress indicator (●). Everything before this is metadata and execution traces.
+
+**Revised Filtering Strategy:**
+1. Find the last progress indicator (●, ✓, ✗, ↪) in the output
+2. Extract content from after the last progress indicator until "Total usage est"
+3. Clean up the extracted content (trim whitespace, collapse empty lines)
+
+This approach ensures we capture the actual AI response whilst discarding all metadata and execution traces.
 
 ### Implementation
 
 ```go
 func (t *CopilotTool) filterOutput(output string) string {
     lines := strings.Split(output, "\n")
-    var filtered []string
 
-    for _, line := range lines {
+    // Find the index of the last progress indicator
+    lastProgressIdx := -1
+    for i, line := range lines {
         trimmedLine := strings.TrimSpace(line)
 
-        // Detect start of usage statistics section - stop processing
+        // Check if line starts with progress indicator
+        if len(trimmedLine) > 0 {
+            firstChar := trimmedLine[0]
+            if firstChar == '●' || firstChar == '✓' || firstChar == '✗' || firstChar == '↪' {
+                lastProgressIdx = i
+            }
+        }
+    }
+
+    // Extract content after last progress indicator
+    var contentLines []string
+    startIdx := lastProgressIdx + 1
+    if lastProgressIdx == -1 {
+        startIdx = 0 // No progress indicators found, use all content
+    }
+
+    for i := startIdx; i < len(lines); i++ {
+        line := lines[i]
+        trimmedLine := strings.TrimSpace(line)
+
+        // Stop at usage statistics section
         if strings.HasPrefix(trimmedLine, "Total usage est") {
             break
         }
 
-        // Skip progress indicators and command traces
-        if len(trimmedLine) > 0 {
-            firstChar := trimmedLine[0]
-            // Skip lines starting with: ● ✓ ✗ ↪
-            if firstChar == '●' || firstChar == '✓' || firstChar == '✗' || firstChar == '↪' {
-                continue
-            }
-        }
-
-        // Skip command execution lines ($ command)
+        // Skip command execution lines
         if strings.HasPrefix(trimmedLine, "$") {
             continue
         }
 
-        // Keep the actual content
-        filtered = append(filtered, line)
+        contentLines = append(contentLines, line)
     }
 
-    // Clean up result
-    result := strings.TrimSpace(strings.Join(filtered, "\n"))
+    // Join and clean up
+    result := strings.Join(contentLines, "\n")
+    result = strings.TrimSpace(result)
 
     // Collapse multiple consecutive empty lines to single
     for strings.Contains(result, "\n\n\n") {
@@ -332,6 +362,29 @@ func (t *CopilotTool) filterOutput(output string) string {
     }
 
     return result
+}
+```
+
+### Alternative Approach for Last Progress Indicator Line Content
+
+If the last progress indicator line contains content after the indicator (e.g., "● 4"), we need to extract that content:
+
+```go
+// If last progress indicator line has content, extract it
+if lastProgressIdx >= 0 && lastProgressIdx < len(lines) {
+    progressLine := strings.TrimSpace(lines[lastProgressIdx])
+
+    // Remove the progress indicator character and get remaining content
+    if len(progressLine) > 1 {
+        // Skip the Unicode character (which may be multi-byte) and any following whitespace
+        runes := []rune(progressLine)
+        if len(runes) > 1 {
+            afterIndicator := strings.TrimSpace(string(runes[1:]))
+            if afterIndicator != "" {
+                contentLines = append([]string{afterIndicator}, contentLines...)
+            }
+        }
+    }
 }
 ```
 

@@ -140,3 +140,34 @@
 - docs/tools/overview.md agents section
 - internal/imports/tools.go import list
 **Rationale**: Consistent with how other agent tools are documented and registered.
+
+## 2025-10-09: Integration Testing Discoveries
+
+### Discovery: Actual Copilot Output Format Differs from Design Assumptions
+**Context**: During integration testing with actual Copilot CLI, discovered that output format differs significantly from initial assumptions.
+**Observation**:
+- Initial design assumed progress indicators were on separate lines from content
+- Actual Copilot output: `● 4` (answer on same line as progress indicator)
+- Initial filtering removed entire lines starting with progress indicators, thus removing the answer
+**Impact**: Tool returns empty responses for simple queries because actual answers are filtered out.
+
+### Decision: Revise Output Filtering Strategy
+**Context**: Current filter removes lines starting with progress indicators, but Copilot places answers after the last progress indicator (sometimes on same line).
+**Decision**: Implement revised filtering strategy:
+1. Find the last progress indicator (●, ✓, ✗, ↪) in the output
+2. Extract content from after that indicator (including content on the same line)
+3. Continue extracting until "Total usage est" appears
+4. Clean and return the extracted content
+**Rationale**:
+- Copilot's output pattern shows the actual AI answer follows the last progress indicator
+- All content before the last progress indicator is metadata and execution traces
+- This approach captures the actual response whilst discarding metadata
+**References**: Updated design.md Output Filtering section with revised implementation
+
+### Decision: Add Bug Fix Task for Filtering
+**Context**: Need to implement the revised filtering strategy to fix empty response issue.
+**Decision**: Add task 8 to tasks.md with subtasks:
+- 8.1: Update FilterOutput() implementation
+- 8.2: Update filter tests to match new behaviour
+- 8.3: Run integration verification with actual Copilot CLI
+**Rationale**: Structured approach to fixing the filtering bug whilst maintaining test coverage and verification.

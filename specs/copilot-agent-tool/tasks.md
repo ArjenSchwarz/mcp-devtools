@@ -135,7 +135,7 @@ references:
 
 ## Quality Assurance
 
-- [ ] 6. Run linting and tests
+- [x] 6. Run linting and tests
   - Run make lint to check code quality
   - Run make test to verify all tests pass
   - Run go mod tidy to clean dependencies
@@ -146,7 +146,7 @@ references:
 
 ## Integration
 
-- [ ] 7. Build and verify integration
+- [x] 7. Build and verify integration
   - Run make build to compile binary
   - Verify copilot-agent tool appears in tool list
   - Test tool registration works correctly
@@ -154,3 +154,37 @@ references:
   - Test enabling with ENABLE_ADDITIONAL_TOOLS=copilot-agent
   - Requirements: [1.2](requirements.md#1.2), [1.3](requirements.md#1.3), [16.1](requirements.md#16.1), [16.2](requirements.md#16.2), [16.4](requirements.md#16.4)
   - References: Makefile
+
+## Bug Fixes
+
+- [x] 8. Fix output filtering to handle actual Copilot output format
+  - Issue discovered: Copilot places actual answer on same line as last progress indicator (e.g., "● 4")
+  - Current implementation filters entire line, removing the answer
+  - Update FilterOutput() method to use revised filtering strategy from design.md
+  - Find last progress indicator in output
+  - Extract content from last progress indicator line (after the indicator character)
+  - Include all content after last progress indicator until "Total usage est"
+  - Update tests in tests/tools/copilot_agent_test.go to match new behaviour
+  - Test with actual copilot CLI output: "● 4" should return "4"
+  - Requirements: [8.1](requirements.md#8.1), [8.2](requirements.md#8.2)
+  - References: design.md Output Filtering section, internal/tools/copilotagent/copilot.go
+  - [x] 8.1. Update filterOutput() implementation
+    - Implement revised algorithm to find last progress indicator
+    - Extract content after last progress indicator (including content on same line)
+    - Handle Unicode progress characters correctly as runes
+    - Preserve content extraction until "Total usage est"
+    - Maintain command line filtering ($ prefix)
+    - References: design.md lines 313-389
+  - [x] 8.2. Update filter tests
+    - Update TestCopilotTool_FilterOutput test cases
+    - Add test case for "● 4" → "4" (answer on same line as indicator)
+    - Add test case for multi-line answer after last indicator
+    - Update existing test expectations to match new behaviour
+    - Verify all filter edge cases still work correctly
+    - References: tests/tools/copilot_agent_test.go lines 481-619
+  - [x] 8.3. Run integration verification
+    - Test with actual copilot CLI: copilot --prompt "what is 2+2?" --no-color
+    - Verify filtered output contains the answer "4"
+    - Test with more complex prompts returning multi-line answers
+    - Verify usage statistics are still filtered out
+    - Run make test to ensure all tests pass

@@ -489,29 +489,51 @@ func TestCopilotTool_FilterOutput(t *testing.T) {
 		shouldNotContain []string
 	}{
 		{
-			name: "filter progress indicators",
+			name: "answer on same line as last progress indicator",
+			input: `● Starting analysis
+✓ Read file.go
+● 4`,
+			expectedOutput:   "4",
+			shouldContain:    []string{"4"},
+			shouldNotContain: []string{"●", "✓", "Starting", "Read"},
+		},
+		{
+			name: "multi-line answer after last indicator",
+			input: `● Starting analysis
+✓ Read file.go
+● The answer is:
+Line 1 of answer
+Line 2 of answer
+
+Total usage est: 1 request`,
+			expectedOutput:   "The answer is:\nLine 1 of answer\nLine 2 of answer",
+			shouldContain:    []string{"The answer is:", "Line 1 of answer", "Line 2 of answer"},
+			shouldNotContain: []string{"●", "✓", "Starting", "Total usage est"},
+		},
+		{
+			name: "filter progress indicators with content following",
 			input: `● Starting analysis
 ✓ Read file.go
 ✗ Failed to read
 ↪ 2 lines...
 
-Actual content here`,
+● Actual content here`,
 			expectedOutput:   "Actual content here",
 			shouldContain:    []string{"Actual content here"},
-			shouldNotContain: []string{"●", "✓", "✗", "↪"},
+			shouldNotContain: []string{"Starting", "Read", "Failed"},
 		},
 		{
 			name: "filter command traces",
 			input: `$ grep pattern file
 $ ls -la
-Actual output`,
+● Actual output`,
 			expectedOutput:   "Actual output",
 			shouldContain:    []string{"Actual output"},
 			shouldNotContain: []string{"$ grep", "$ ls"},
 		},
 		{
 			name: "stop at usage statistics",
-			input: `Good content
+			input: `● Good content
 More good content
 
 Total usage est:       1 Premium request
@@ -524,7 +546,7 @@ Usage by model:
 		},
 		{
 			name: "collapse multiple empty lines",
-			input: `Line 1
+			input: `● Line 1
 
 
 Line 2
@@ -536,18 +558,29 @@ Line 3`,
 			shouldNotContain: []string{"\n\n\n"},
 		},
 		{
-			name: "comprehensive filtering",
+			name: "comprehensive filtering with last indicator",
 			input: `● Starting
+✓ Done reading
 $ command here
+✓
 Good line 1
-✓ Done
 Good line 2
 
 
 Good line 3
 Total usage est: something`,
+			expectedOutput:   "Good line 1\nGood line 2\n\nGood line 3",
 			shouldContain:    []string{"Good line 1", "Good line 2", "Good line 3"},
-			shouldNotContain: []string{"●", "$", "✓", "Total usage est"},
+			shouldNotContain: []string{"●", "$", "✓", "Starting", "Done reading", "Total usage est"},
+		},
+		{
+			name: "no progress indicators - keeps all content",
+			input: `Just normal text
+More normal text
+Total usage est: 1 request`,
+			expectedOutput:   "Just normal text\nMore normal text",
+			shouldContain:    []string{"Just normal text", "More normal text"},
+			shouldNotContain: []string{"Total usage est"},
 		},
 	}
 
@@ -602,9 +635,9 @@ func TestCopilotTool_FilterOutput_EdgeCases(t *testing.T) {
 			expected: "Just normal text",
 		},
 		{
-			name:     "all lines filtered",
+			name:     "all lines filtered except last indicator content",
 			input:    "● Progress\n✓ Done\n$ command",
-			expected: "",
+			expected: "Done", // "Done" is content on the last progress indicator line
 		},
 	}
 

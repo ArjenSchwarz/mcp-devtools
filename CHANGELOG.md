@@ -6,6 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+- GitHub Copilot Agent Tool output filtering:
+  - Revised filtering strategy to extract content after last progress indicator (●, ✓, ✗, ↪)
+  - Fixed issue where actual answers on same line as progress indicator were filtered out
+  - Updated to handle Unicode progress characters correctly using rune slicing
+  - Improved content extraction to capture multi-line responses after last indicator
+  - Maintained filtering of command traces ($ prefix) and usage statistics section
+
+### Changed
+- GitHub Copilot Agent Tool specification updates:
+  - Updated design.md with revised output filtering implementation based on actual Copilot CLI behaviour
+  - Added decision log entry documenting filtering strategy revision based on integration testing discoveries
+  - Updated tasks.md with bug fix subtasks for output filtering implementation and testing
+- GitHub Copilot Agent Tool test coverage:
+  - Revised filter tests to match new output extraction behaviour
+  - Added test cases for answers on same line as progress indicator
+  - Added test cases for multi-line answers after last indicator
+  - Updated edge case tests to reflect revised filtering logic
+
 ### Added
 - Documentation for GitHub Copilot Agent Tool:
   - Created [docs/tools/copilot-agent.md](docs/tools/copilot-agent.md) with usage examples, configuration details, and troubleshooting guide

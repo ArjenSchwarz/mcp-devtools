@@ -215,36 +215,65 @@ func (t *CopilotTool) runCopilot(ctx context.Context, logger *logrus.Logger, tim
 // FilterOutput removes Copilot-specific metadata from output
 func (t *CopilotTool) FilterOutput(output string) string {
 	lines := strings.Split(output, "\n")
-	var filtered []string
 
-	for _, line := range lines {
+	// Find the index of the last progress indicator
+	lastProgressIdx := -1
+	for i, line := range lines {
 		trimmedLine := strings.TrimSpace(line)
 
-		// Detect start of usage statistics section - stop processing
+		// Check if line starts with progress indicator (using rune to handle Unicode)
+		if len(trimmedLine) > 0 {
+			runes := []rune(trimmedLine)
+			firstChar := runes[0]
+			if firstChar == '●' || firstChar == '✓' || firstChar == '✗' || firstChar == '↪' {
+				lastProgressIdx = i
+			}
+		}
+	}
+
+	// Extract content after last progress indicator
+	var contentLines []string
+	startIdx := lastProgressIdx + 1
+	if lastProgressIdx == -1 {
+		startIdx = 0 // No progress indicators found, use all content
+	}
+
+	// If last progress indicator line has content after the indicator, extract it
+	if lastProgressIdx >= 0 && lastProgressIdx < len(lines) {
+		progressLine := strings.TrimSpace(lines[lastProgressIdx])
+		// Remove the progress indicator character and get remaining content
+		if len(progressLine) > 0 {
+			runes := []rune(progressLine)
+			if len(runes) > 1 {
+				afterIndicator := strings.TrimSpace(string(runes[1:]))
+				if afterIndicator != "" {
+					contentLines = append(contentLines, afterIndicator)
+				}
+			}
+		}
+	}
+
+	// Extract remaining content from lines after the progress indicator
+	for i := startIdx; i < len(lines); i++ {
+		line := lines[i]
+		trimmedLine := strings.TrimSpace(line)
+
+		// Stop at usage statistics section
 		if strings.HasPrefix(trimmedLine, "Total usage est") {
 			break
 		}
 
-		// Skip progress indicators and command traces
-		// Skip lines starting with: ● ✓ ✗ ↪
-		if strings.HasPrefix(trimmedLine, "●") ||
-			strings.HasPrefix(trimmedLine, "✓") ||
-			strings.HasPrefix(trimmedLine, "✗") ||
-			strings.HasPrefix(trimmedLine, "↪") {
-			continue
-		}
-
-		// Skip command execution lines ($ command)
+		// Skip command execution lines
 		if strings.HasPrefix(trimmedLine, "$") {
 			continue
 		}
 
-		// Keep the actual content
-		filtered = append(filtered, line)
+		contentLines = append(contentLines, line)
 	}
 
-	// Clean up result
-	result := strings.TrimSpace(strings.Join(filtered, "\n"))
+	// Join and clean up
+	result := strings.Join(contentLines, "\n")
+	result = strings.TrimSpace(result)
 
 	// Collapse multiple consecutive empty lines to single
 	for strings.Contains(result, "\n\n\n") {
